@@ -1,0 +1,23 @@
+:root { --accent: #8b7cff; --accent-hover: #a99fff; color-scheme: dark; font-family: "Segoe UI Variable", "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+body { width: 340px; margin: 0; color: #f4f3fa; background: #10121a; }
+main { padding: 20px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 750; }
+#brandIcon { width: 32px; height: 32px; }
+.eyebrow { margin: 18px 0 5px; color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: 1.5px; }
+h1 { margin: 0; font-size: 21px; }
+#detail { min-height: 38px; margin: 8px 0 13px; color: #a6a7b7; font-size: 12px; line-height: 1.45; }
+.status { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #343645; border-radius: 10px; background: #151722; font-size: 12px; }
+.status span { width: 8px; height: 8px; border-radius: 50%; background: #f4be61; }
+.status.connected span { background: #53d6b5; box-shadow: 0 0 0 4px #53d6b522; }
+.status.offline span { background: #ff7a90; }
+button { width: 100%; margin-top: 11px; padding: 10px; border: 0; border-radius: 10px; color: #0a0b12; background: var(--accent); font-weight: 750; cursor: pointer; }
+button:hover { background: var(--accent-hover); }
+.privacy { margin: 14px 1px 0; color: #77798d; font-size: 10px; line-height: 1.45; }
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: light; }
+  body { color: #20212a; background: #fff; }
+  #detail { color: #6b6e7b; }
+  .status { background: #f7f8fb; border-color: #dfe1e8; }
+  .privacy { color: #8b8e9a; }
+}

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "LumaGuard Browser Companion",
+  "version": "0.4.6",
+  "description": "Reports focused website domains locally for Screen Usage and time limits.",
+  "icons": {
+    "16": "icons/violet-16.png",
+    "32": "icons/violet-32.png",
+    "48": "icons/violet-48.png",
+    "128": "icons/violet-128.png"
+  },
+  "permissions": ["alarms"],
+  "host_permissions": ["http://127.0.0.1:17843/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {"resources": ["blocked.html", "blocked.js", "blocked.css"], "matches": ["<all_urls>"]}
+  ],
+  "action": {
+    "default_title": "LumaGuard Browser Companion",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/violet-16.png",
+      "32": "icons/violet-32.png"
+    }
+  }
+}
