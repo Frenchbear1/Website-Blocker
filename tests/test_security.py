@@ -1,4 +1,4 @@
-from lumaguard.security import create_pin_hash, verify_pin
+from website_blocker.security import create_pin_hash, verify_pin
 
 
 def test_pin_round_trip_and_wrong_pin():

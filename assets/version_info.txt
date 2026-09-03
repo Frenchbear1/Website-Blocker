@@ -13,12 +13,12 @@ VSVersionInfo(
     StringFileInfo([
       StringTable(
         u'040904B0',
-        [StringStruct(u'CompanyName', u'LumaGuard'),
-         StringStruct(u'FileDescription', u'LumaGuard intentional browsing blocker'),
+        [StringStruct(u'CompanyName', u'Website Blocker'),
+         StringStruct(u'FileDescription', u'Website blocking and screen-time controls'),
          StringStruct(u'FileVersion', u'0.4.6'),
-         StringStruct(u'InternalName', u'LumaGuard'),
-         StringStruct(u'OriginalFilename', u'LumaGuard.exe'),
-         StringStruct(u'ProductName', u'LumaGuard'),
+         StringStruct(u'InternalName', u'Website Blocker'),
+         StringStruct(u'OriginalFilename', u'Website Blocker.exe'),
+         StringStruct(u'ProductName', u'Website Blocker'),
          StringStruct(u'ProductVersion', u'0.4.6')]
       )
     ]),

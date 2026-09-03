@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "LumaGuard Browser Companion",
+  "name": "Website Blocker Browser Companion",
   "version": "0.4.6",
   "description": "Reports focused website domains locally for Screen Usage and time limits.",
   "icons": {
@@ -20,12 +20,12 @@
   ],
   "web_accessible_resources": ["blocked.html", "blocked.js", "blocked.css"],
   "browser_action": {
-    "default_title": "LumaGuard Browser Companion",
+    "default_title": "Website Blocker Browser Companion",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/violet-16.png",
       "32": "icons/violet-32.png"
     }
   },
-  "applications": {"gecko": {"id": "companion@lumaguard.local", "strict_min_version": "109.0"}}
+  "applications": {"gecko": {"id": "companion@website-blocker.local", "strict_min_version": "109.0"}}
 }

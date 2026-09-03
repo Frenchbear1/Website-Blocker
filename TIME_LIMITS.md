@@ -1,6 +1,6 @@
 # Time Limits — v0.2 Implementation
 
-LumaGuard v0.2 implements local foreground-time limits. Windows applications and browser websites use separate observers because treating them as one source would produce inaccurate totals and weak blocking.
+Website Blocker v0.2 implements local foreground-time limits. Windows applications and browser websites use separate observers because treating them as one source would produce inaccurate totals and weak blocking.
 
 ## What can be observed accurately
 
@@ -54,7 +54,7 @@ Force-closing without warning risks losing unsaved work, so it should never be t
 ## Implemented components
 
 1. `TimeLimitEngine` — foreground-window accounting, heartbeat accounting, warnings, and SQLite persistence.
-2. `LumaGuard Browser Companion` — Chrome/Edge Manifest V3 and Firefox sources reporting focused-domain time and displaying limit pages.
+2. `Website Blocker Browser Companion` — Chrome/Edge Manifest V3 and Firefox sources reporting focused-domain time and displaying limit pages.
 3. `LimitsPage` — current-app/domain discovery, daily/custom-day rules, live progress, and editing.
 4. `BrowserBridge` — extension-origin HTTP on loopback only; no cloud account required.
 

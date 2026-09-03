@@ -1,6 +1,6 @@
 import pytest
 
-from lumaguard.domains import normalize_domain, unique_domains
+from website_blocker.domains import normalize_domain, unique_domains
 
 
 @pytest.mark.parametrize(

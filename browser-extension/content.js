@@ -1,4 +1,4 @@
-const lumaApi = globalThis.browser || globalThis.chrome;
+const extensionApi = globalThis.browser || globalThis.chrome;
 let redirecting = false;
 let warningHost = null;
 let previousOverflow = "";
@@ -17,7 +17,7 @@ function checkLimit() {
   if (redirecting || warningHost || document.visibilityState !== "visible" || !document.hasFocus()) return;
   const domain = location.hostname.replace(/^www\./i, "").toLowerCase();
   if (!domain || !domain.includes(".")) return;
-  sendHeartbeat({type: "lumaguard-heartbeat", domain, active: true}, (result) => {
+  sendHeartbeat({type: "website-blocker-heartbeat", domain, active: true}, (result) => {
     if (!result) return;
     if (result.blocked) {
       redirectToBlockPage(domain);
@@ -29,7 +29,7 @@ function checkLimit() {
 
 function redirectToBlockPage(domain) {
   redirecting = true;
-  const destination = lumaApi.runtime.getURL(`blocked.html?domain=${encodeURIComponent(domain)}`);
+  const destination = extensionApi.runtime.getURL(`blocked.html?domain=${encodeURIComponent(domain)}`);
   location.replace(destination);
 }
 
@@ -48,7 +48,7 @@ function showWarning(notice, domain, accentValue) {
   document.documentElement.style.overflow = "hidden";
 
   warningHost = document.createElement("div");
-  warningHost.setAttribute("data-lumaguard-warning", "");
+  warningHost.setAttribute("data-website-blocker-warning", "");
   const shadow = warningHost.attachShadow({mode: "open"});
   const accent = /^#[0-9a-f]{6}$/i.test(accentValue || "") ? accentValue : "#8b7cff";
   shadow.innerHTML = `
@@ -67,14 +67,14 @@ function showWarning(notice, domain, accentValue) {
         color: #f4f3fa; background: rgba(7, 8, 13, .66);
         -webkit-backdrop-filter: blur(12px) saturate(.72);
         backdrop-filter: blur(12px) saturate(.72);
-        animation: luma-fade .18s ease-out both;
+        animation: website-blocker-fade .18s ease-out both;
       }
       .card {
         width: min(490px, 100%); padding: 26px; overflow: hidden;
         border: 1px solid #3b3d4d; border-radius: 22px;
         background: linear-gradient(145deg, #171927, #11131c);
         box-shadow: 0 28px 90px rgba(0, 0, 0, .62);
-        animation: luma-rise .22s cubic-bezier(.2, .8, .2, 1) both;
+        animation: website-blocker-rise .22s cubic-bezier(.2, .8, .2, 1) both;
       }
       .top { display: flex; gap: 15px; align-items: flex-start; }
       .mark {
@@ -100,8 +100,8 @@ function showWarning(notice, domain, accentValue) {
       button.block:hover { color: #ff9daf; border-color: #ff7a90; background: #2b1820; }
       button:disabled { opacity: .6; cursor: wait; transform: none; }
       .status { min-height: 17px; margin: 12px 0 -4px; color: #ff9daf; font-size: 11px; text-align: right; }
-      @keyframes luma-fade { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes luma-rise { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+      @keyframes website-blocker-fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes website-blocker-rise { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
       @media (prefers-color-scheme: light) {
         .scrim { color: #20212a; background: rgba(235, 237, 244, .68); }
         .card { background: linear-gradient(145deg, #fff, #f8f7fc); border-color: #d1d4de; box-shadow: 0 28px 90px rgba(50, 53, 67, .24); }
@@ -117,13 +117,13 @@ function showWarning(notice, domain, accentValue) {
         button { width: 100%; }
       }
     </style>
-    <section class="scrim" role="dialog" aria-modal="true" aria-labelledby="luma-title" aria-describedby="luma-detail">
+    <section class="scrim" role="dialog" aria-modal="true" aria-labelledby="website-blocker-title" aria-describedby="website-blocker-detail">
       <div class="card">
         <div class="top">
           <div class="mark" aria-hidden="true">!</div>
-          <div><p class="eyebrow">LUMAGUARD TIME LIMIT</p><h1 id="luma-title"></h1></div>
+          <div><p class="eyebrow">WEBSITE BLOCKER TIME LIMIT</p><h1 id="website-blocker-title"></h1></div>
         </div>
-        <p class="body" id="luma-detail"></p>
+        <p class="body" id="website-blocker-detail"></p>
         <p class="choice">Dismiss to keep browsing, or turn this into a strict block until tomorrow.</p>
         <div class="actions">
           <button class="block" type="button">Block for today</button>
@@ -133,8 +133,8 @@ function showWarning(notice, domain, accentValue) {
       </div>
     </section>`;
 
-  shadow.getElementById("luma-title").textContent = notice.title || "Time-limit warning";
-  shadow.getElementById("luma-detail").textContent = notice.detail || `${domain} reached its daily allowance.`;
+  shadow.getElementById("website-blocker-title").textContent = notice.title || "Time-limit warning";
+  shadow.getElementById("website-blocker-detail").textContent = notice.detail || `${domain} reached its daily allowance.`;
   const dismiss = shadow.querySelector("button.primary");
   const block = shadow.querySelector("button.block");
   const status = shadow.querySelector(".status");
@@ -143,12 +143,12 @@ function showWarning(notice, domain, accentValue) {
     block.disabled = true;
     dismiss.disabled = true;
     block.textContent = "Blocking...";
-    sendHeartbeat({type: "lumaguard-decision", action: "block_today", domain}, (result) => {
+    sendHeartbeat({type: "website-blocker-decision", action: "block_today", domain}, (result) => {
       if (result && result.blocked) {
         redirectToBlockPage(domain);
         return;
       }
-      status.textContent = "LumaGuard could not apply the block. Make sure the desktop app is running.";
+      status.textContent = "Website Blocker could not apply the block. Make sure the desktop app is running.";
       block.disabled = false;
       dismiss.disabled = false;
       block.textContent = "Block for today";
@@ -161,7 +161,7 @@ function showWarning(notice, domain, accentValue) {
 function endSession() {
   const domain = location.hostname.replace(/^www\./i, "").toLowerCase();
   if (domain && domain.includes(".")) {
-    sendHeartbeat({type: "lumaguard-heartbeat", domain, active: false}, () => {});
+    sendHeartbeat({type: "website-blocker-heartbeat", domain, active: false}, () => {});
   }
 }
 

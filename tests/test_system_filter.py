@@ -1,5 +1,5 @@
-from lumaguard.system_filter import END_MARKER, START_MARKER, PreviewSystemFilter, SystemFilter, render_hosts_content
-from lumaguard.models import AppSettings
+from website_blocker.system_filter import END_MARKER, START_MARKER, PreviewSystemFilter, SystemFilter, render_hosts_content
+from website_blocker.models import AppSettings
 
 
 def test_render_hosts_adds_bounded_rules_without_touching_existing_lines():

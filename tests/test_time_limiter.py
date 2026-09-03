@@ -1,10 +1,10 @@
 from datetime import date, datetime
 import time
 
-from lumaguard.models import AppSettings, TimeLimitRule
-from lumaguard.storage import UsageStore
-from lumaguard.time_limiter import TimeLimitEngine
-from lumaguard.win_activity import WindowsApp
+from website_blocker.models import AppSettings, TimeLimitRule
+from website_blocker.storage import UsageStore
+from website_blocker.time_limiter import TimeLimitEngine
+from website_blocker.win_activity import WindowsApp
 
 
 def _weekday():
@@ -241,14 +241,14 @@ def test_screen_usage_ignores_system_host_processes(tmp_path):
     assert engine.screen_usage_summary(date.today().isoformat(), date.today().isoformat()) == []
 
 
-def test_screen_usage_never_tracks_or_displays_lumaguard_itself(tmp_path):
+def test_screen_usage_never_tracks_or_displays_website_blocker_itself(tmp_path):
     settings = AppSettings(screen_usage_enabled=True)
     app = WindowsApp(
         10,
         20,
-        r"C:\Apps\LumaGuard-0.4.5.exe",
-        "lumaguard-0.4.5.exe",
-        "LumaGuard 0.4.5",
+        r"C:\Apps\Website Blocker-0.4.5.exe",
+        "website-blocker-0.4.5.exe",
+        "Website Blocker 0.4.5",
     )
     store = UsageStore(tmp_path / "usage.db")
     engine = TimeLimitEngine(
@@ -260,7 +260,7 @@ def test_screen_usage_never_tracks_or_displays_lumaguard_itself(tmp_path):
 
     engine.tick()
     store.add_screen_seconds(
-        "app", "lumaguard-0.4.4.exe", "LumaGuard 0.4.4", 30
+        "app", "website-blocker-0.4.4.exe", "Website Blocker 0.4.4", 30
     )
 
     today = date.today().isoformat()

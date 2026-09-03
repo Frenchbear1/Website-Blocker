@@ -26,32 +26,32 @@ function browserName() {
   return "chrome";
 }
 
-function postToLumaGuard(path, payload) {
+function postToWebsiteBlocker(path, payload) {
   return fetch(`http://127.0.0.1:17843${path}`, {
     method: "POST",
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      "X-LumaGuard-Companion": "1"
+      "X-Website-Blocker-Companion": "1"
     },
     body: JSON.stringify({browser: browserName(), ...payload})
   }).then((response) => response.json());
 }
 
 function reportPresence() {
-  return postToLumaGuard("/presence", {})
+  return postToWebsiteBlocker("/presence", {})
     .then(applyAppearance)
     .catch(() => ({ok: false, connected: false, unavailable: true}));
 }
 
 extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message) return false;
-  if (message.type === "lumaguard-status") {
+  if (message.type === "website-blocker-status") {
     reportPresence().then(sendResponse);
     return true;
   }
-  if (message.type === "lumaguard-decision") {
-    postToLumaGuard("/decision", {
+  if (message.type === "website-blocker-decision") {
+    postToWebsiteBlocker("/decision", {
         domain: message.domain,
         action: message.action
     })
@@ -60,8 +60,8 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch(() => sendResponse({ok: false, blocked: false, unavailable: true}));
     return true;
   }
-  if (message.type !== "lumaguard-heartbeat") return false;
-  postToLumaGuard("/heartbeat", {
+  if (message.type !== "website-blocker-heartbeat") return false;
+  postToWebsiteBlocker("/heartbeat", {
     domain: message.domain,
     active: message.active !== false
   })
@@ -72,12 +72,12 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 extensionApi.runtime.onInstalled.addListener(() => {
-  extensionApi.alarms.create("lumaguard-presence", {periodInMinutes: 1});
+  extensionApi.alarms.create("website-blocker-presence", {periodInMinutes: 1});
   reportPresence();
 });
 extensionApi.runtime.onStartup.addListener(reportPresence);
 extensionApi.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "lumaguard-presence") reportPresence();
+  if (alarm.name === "website-blocker-presence") reportPresence();
 });
-extensionApi.alarms.create("lumaguard-presence", {periodInMinutes: 1});
+extensionApi.alarms.create("website-blocker-presence", {periodInMinutes: 1});
 reportPresence();

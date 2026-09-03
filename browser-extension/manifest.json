@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "LumaGuard Browser Companion",
+  "name": "Website Blocker Browser Companion",
   "version": "0.4.6",
   "description": "Reports focused website domains locally for Screen Usage and time limits.",
   "icons": {
@@ -23,7 +23,7 @@
     {"resources": ["blocked.html", "blocked.js", "blocked.css"], "matches": ["<all_urls>"]}
   ],
   "action": {
-    "default_title": "LumaGuard Browser Companion",
+    "default_title": "Website Blocker Browser Companion",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/violet-16.png",

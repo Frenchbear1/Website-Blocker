@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_NAME = "LumaGuard"
+APP_NAME = "Website Blocker"
 APP_VERSION = "0.4.6"
-APP_ID = "LumaGuard.Desktop"
+APP_ID = "WebsiteBlocker.Desktop"
 
 
 def app_data_dir() -> Path:
@@ -17,7 +17,7 @@ SETTINGS_PATH = app_data_dir() / "settings.json"
 STATE_PATH = app_data_dir() / "filter-state.json"
 EVENTS_PATH = app_data_dir() / "events.json"
 USAGE_DB_PATH = app_data_dir() / "usage.db"
-HOSTS_BACKUP_PATH = app_data_dir() / "hosts.pre-lumaguard.bak"
+HOSTS_BACKUP_PATH = app_data_dir() / "hosts.pre-website-blocker.bak"
 BROWSER_BRIDGE_HOST = "127.0.0.1"
 BROWSER_BRIDGE_PORT = 17843
 

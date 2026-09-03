@@ -17,9 +17,9 @@ function sendHeartbeat(message, callback) {
 
 function checkAgain() {
   statusLabel.textContent = "Checking your allowance…";
-  sendHeartbeat({type: "lumaguard-heartbeat", domain, active: false}, (result) => {
+  sendHeartbeat({type: "website-blocker-heartbeat", domain, active: false}, (result) => {
     if (!result || !result.ok) {
-      statusLabel.textContent = "LumaGuard isn’t reachable. Make sure the desktop app is running.";
+      statusLabel.textContent = "Website Blocker isn’t reachable. Make sure the desktop app is running.";
     } else if (!result.blocked) {
       location.href = `https://${domain}`;
     } else {

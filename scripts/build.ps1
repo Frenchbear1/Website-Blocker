@@ -1,6 +1,6 @@
 param(
     [ValidatePattern('^[A-Za-z0-9._-]+$')]
-    [string]$OutputName = 'LumaGuard'
+    [string]$OutputName = 'Website Blocker'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +24,7 @@ try {
         --windowed `
         --uac-admin `
         --name $OutputName `
-        --icon 'assets\lumaguard.ico' `
+        --icon 'assets\website_blocker.ico' `
         --version-file 'assets\version_info.txt' `
         --add-data 'browser-extension;browser-extension' `
         'app.py'

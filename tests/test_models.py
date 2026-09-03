@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from lumaguard.models import ScheduleRule, TimeLimitRule
+from website_blocker.models import ScheduleRule, TimeLimitRule
 
 
 def test_schedule_within_same_day():

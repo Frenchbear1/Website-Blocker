@@ -11,15 +11,15 @@ from PySide6.QtCore import QLockFile, QStandardPaths, QTimer, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
-from lumaguard.constants import APP_ID, APP_NAME
-from lumaguard.dialogs import show_message
-from lumaguard.main_window import MainWindow
-from lumaguard.storage import EventStore, SettingsStore, UsageStore
-from lumaguard.system_filter import PreviewSystemFilter
+from website_blocker.constants import APP_ID, APP_NAME
+from website_blocker.dialogs import show_message
+from website_blocker.main_window import MainWindow
+from website_blocker.storage import EventStore, SettingsStore, UsageStore
+from website_blocker.system_filter import PreviewSystemFilter
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="LumaGuard desktop blocker")
+    parser = argparse.ArgumentParser(description="Website blocking and screen-time controls")
     parser.add_argument("--background", action="store_true", help="Start in the system tray")
     parser.add_argument("--preview", action="store_true", help="Use a non-mutating preview filter")
     parser.add_argument("--screenshot", type=Path, help="Save a UI screenshot and exit")
@@ -60,16 +60,16 @@ def main() -> int:
     app = QApplication(sys.argv)
     configure_app(app)
 
-    lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.TempLocation)) / "lumaguard-app.lock"
+    lock_path = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.TempLocation)) / "website-blocker-app.lock"
     lock = QLockFile(str(lock_path))
     lock.setStaleLockTime(0)
     if not args.preview and not lock.tryLock(100):
         if should_show_already_running_message(args):
-            show_message(None, APP_NAME, "LumaGuard is already running in the system tray.")
+            show_message(None, APP_NAME, "Website Blocker is already running in the system tray.")
         return 0
 
     if args.preview:
-        preview_root = Path(tempfile.mkdtemp(prefix="lumaguard-preview-"))
+        preview_root = Path(tempfile.mkdtemp(prefix="website-blocker-preview-"))
         settings_store = SettingsStore(preview_root / "settings.json")
         event_store = EventStore(preview_root / "events.json")
         usage_store = UsageStore(preview_root / "usage.db")

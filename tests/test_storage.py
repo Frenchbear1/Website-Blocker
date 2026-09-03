@@ -1,8 +1,8 @@
 import sqlite3
 from datetime import datetime
 
-from lumaguard.models import AppSettings, EventRecord, ScheduleRule, TimeLimitRule
-from lumaguard.storage import EventStore, SettingsStore, UsageStore
+from website_blocker.models import AppSettings, EventRecord, ScheduleRule, TimeLimitRule
+from website_blocker.storage import EventStore, SettingsStore, UsageStore
 
 
 def test_settings_round_trip(tmp_path):

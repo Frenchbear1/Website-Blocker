@@ -240,7 +240,7 @@ class MainWindow(QMainWindow):
         menu.setObjectName("trayMenu")
         menu.setStyleSheet(menu_stylesheet(self.settings.theme, self.settings.accent))
         self.tray_menu = menu
-        show_action = QAction("Open LumaGuard", self)
+        show_action = QAction("Open Website Blocker", self)
         show_action.triggered.connect(self.show_from_tray)
         limits_action = QAction("Open time limits", self)
         limits_action.triggered.connect(self.show_time_limits)
@@ -307,7 +307,7 @@ class MainWindow(QMainWindow):
     def _authorize_pause(self) -> bool:
         if not self.settings.lock_enabled:
             return True
-        dialog = PinDialog("Unlock protection", "Enter your LumaGuard PIN before pausing protection.", parent=self)
+        dialog = PinDialog("Unlock protection", "Enter your Website Blocker PIN before pausing protection.", parent=self)
         if dialog.exec() != PinDialog.DialogCode.Accepted:
             return False
         if not verify_pin(dialog.value, self.settings.pin_salt, self.settings.pin_hash):
@@ -344,7 +344,7 @@ class MainWindow(QMainWindow):
             "Cooldown started",
             f"Protection will remain active for {self._format_duration(minutes)}. "
             + (
-                "The pause window will then stay open until you close the LumaGuard window."
+                "The pause window will then stay open until you close the Website Blocker window."
                 if self.settings.pause_window_minutes == 0
                 else f"You will then have {self._format_duration(self.settings.pause_window_minutes)} to confirm the pause before it relocks."
             ),
@@ -381,7 +381,7 @@ class MainWindow(QMainWindow):
             self._event(
                 "success",
                 "Pause window opened",
-                "It will reset when the LumaGuard window closes."
+                "It will reset when the Website Blocker window closes."
                 if close_bound
                 else f"You have {self._format_duration(self.settings.pause_window_minutes)} to pause protection.",
             )
@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
         self.refresh_all()
 
     def add_time_limit(self) -> None:
-        apps = [app for app in list_open_apps() if app.executable_name != "lumaguard.exe"]
+        apps = [app for app in list_open_apps() if app.executable_name != "website blocker.exe"]
         dialog = TimeLimitDialog(apps, self.time_engine.recent_sites(), parent=self)
         if dialog.exec() != TimeLimitDialog.DialogCode.Accepted:
             return
@@ -692,7 +692,7 @@ class MainWindow(QMainWindow):
         current = next((rule for rule in self.settings.time_limits if rule.id == rule_id), None)
         if not current:
             return
-        apps = [app for app in list_open_apps() if app.executable_name != "lumaguard.exe"]
+        apps = [app for app in list_open_apps() if app.executable_name != "website blocker.exe"]
         dialog = TimeLimitDialog(apps, self.time_engine.recent_sites(), current, self)
         if dialog.exec() != TimeLimitDialog.DialogCode.Accepted:
             return
@@ -735,7 +735,7 @@ class MainWindow(QMainWindow):
         if self.settings.lock_enabled:
             dialog = PinDialog(
                 "Reset today's usage",
-                f"Enter your LumaGuard PIN to clear today's counter for {label}.",
+                f"Enter your Website Blocker PIN to clear today's counter for {label}.",
                 parent=self,
             )
             if dialog.exec() != PinDialog.DialogCode.Accepted:
@@ -779,7 +779,7 @@ class MainWindow(QMainWindow):
             show_message(
                 self,
                 "Companion files were not found",
-                "Reinstall LumaGuard or use the companion ZIP included with this build.",
+                "Reinstall Website Blocker or use the companion ZIP included with this build.",
                 warning=True,
             )
             return
@@ -796,7 +796,7 @@ class MainWindow(QMainWindow):
             "1. Open the browser's Extensions page (vivaldi://extensions, chrome://extensions, or edge://extensions).\n"
             "2. Turn on Developer mode.\n"
             "3. Choose Load unpacked and select the folder that just opened.\n"
-            "4. Refresh an ordinary website tab, then click the LumaGuard extension icon to confirm Connected.",
+            "4. Refresh an ordinary website tab, then click the Website Blocker extension icon to confirm Connected.",
         )
 
     def _evaluate_schedules(self) -> None:
@@ -901,7 +901,7 @@ class MainWindow(QMainWindow):
         self._save()
         self._event("warning", "Protection PIN removed", "PIN checks are now off.")
         self.refresh_all()
-        show_message(self, "PIN removed", "LumaGuard no longer requires a PIN.")
+        show_message(self, "PIN removed", "Website Blocker no longer requires a PIN.")
 
     def show_from_tray(self) -> None:
         self.showNormal()
@@ -932,8 +932,8 @@ class MainWindow(QMainWindow):
         if self.settings.protection_enabled:
             if not ask_confirmation(
                 self,
-                "Quit LumaGuard?",
-                "System filtering remains applied after the interface closes, but schedules and time limits will not run until LumaGuard starts again.",
+                "Quit Website Blocker?",
+                "System filtering remains applied after the interface closes, but schedules and time limits will not run until Website Blocker starts again.",
                 "Quit",
             ):
                 return
@@ -956,7 +956,7 @@ class MainWindow(QMainWindow):
         self.settings.pause_available_at = ""
         self._last_pause_phase = PausePhase.INACTIVE
         self._save()
-        self._event("warning", "Pause window reset", "The LumaGuard window was closed.")
+        self._event("warning", "Pause window reset", "The Website Blocker window was closed.")
 
     def apply_windows_frame(self) -> None:
         if os.name != "nt" or not self.windowHandle():

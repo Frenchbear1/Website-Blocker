@@ -7,17 +7,17 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QFrame, QPushButton
 
-from lumaguard.constants import DNS_PRESETS
-from lumaguard.dialogs import MessageDialog, PinDialog, ScheduleDialog
-from lumaguard.main_window import MainWindow
-from lumaguard.models import AppSettings, ScreenUsageEntry
-from lumaguard.pages import DomainColumn, LimitsPage, ProfilesPage, SchedulePage, SettingsPage
-from lumaguard.security import create_pin_hash
-from lumaguard.storage import EventStore, SettingsStore, UsageStore
-from lumaguard.system_filter import PreviewSystemFilter
-from lumaguard.theme import stylesheet
-from lumaguard.usage_page import ScreenUsagePage, UsageRow, usage_period
-from lumaguard.widgets import ProfileSlider, ProtectionButton, ToggleSwitch
+from website_blocker.constants import DNS_PRESETS
+from website_blocker.dialogs import MessageDialog, PinDialog, ScheduleDialog
+from website_blocker.main_window import MainWindow
+from website_blocker.models import AppSettings, ScreenUsageEntry
+from website_blocker.pages import DomainColumn, LimitsPage, ProfilesPage, SchedulePage, SettingsPage
+from website_blocker.security import create_pin_hash
+from website_blocker.storage import EventStore, SettingsStore, UsageStore
+from website_blocker.system_filter import PreviewSystemFilter
+from website_blocker.theme import stylesheet
+from website_blocker.usage_page import ScreenUsagePage, UsageRow, usage_period
+from website_blocker.widgets import ProfileSlider, ProtectionButton, ToggleSwitch
 
 
 def _app() -> QApplication:
@@ -153,7 +153,7 @@ def test_schedule_toggle_is_compact_and_sits_in_the_header_controls():
 
 def test_shared_popups_use_roomy_styled_dialog_shells():
     _app()
-    message = MessageDialog("Quit LumaGuard?", "Schedules and limits stop running.", "question", "Quit", True)
+    message = MessageDialog("Quit Website Blocker?", "Schedules and limits stop running.", "question", "Quit", True)
     pin = PinDialog("Verify PIN", "Enter the current PIN.")
     schedule = ScheduleDialog()
 
@@ -197,8 +197,8 @@ def test_active_cooldown_change_requires_the_saved_pin(tmp_path, monkeypatch):
         def exec(self):
             return self.DialogCode.Accepted
 
-    monkeypatch.setattr("lumaguard.main_window.PinDialog", FakePinDialog)
-    monkeypatch.setattr("lumaguard.main_window.show_message", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("website_blocker.main_window.PinDialog", FakePinDialog)
+    monkeypatch.setattr("website_blocker.main_window.show_message", lambda *_args, **_kwargs: None)
 
     window.set_preference("cooldown_minutes", 0)
 
@@ -214,7 +214,7 @@ def test_active_cooldown_change_requires_the_saved_pin(tmp_path, monkeypatch):
         def __init__(self, *_args, **_kwargs):
             self.value = "4827"
 
-    monkeypatch.setattr("lumaguard.main_window.PinDialog", CorrectPinDialog)
+    monkeypatch.setattr("website_blocker.main_window.PinDialog", CorrectPinDialog)
     window.set_preference("cooldown_minutes", 0)
 
     assert window.settings.cooldown_minutes == 0

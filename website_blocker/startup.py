@@ -11,7 +11,7 @@ from xml.sax.saxutils import escape
 from .constants import APP_NAME
 
 
-TASK_NAME = "LumaGuard Startup"
+TASK_NAME = "Website Blocker Startup"
 TASK_NAMESPACE = "http://schemas.microsoft.com/windows/2004/02/mit/task"
 LEGACY_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 CREATE_NO_WINDOW = 0x08000000
@@ -80,7 +80,7 @@ def scheduled_task_xml(program: Path, arguments: str, working_directory: Path, u
     return f'''<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="{TASK_NAMESPACE}">
   <RegistrationInfo>
-    <Description>Starts LumaGuard quietly after sign-in and restores it after sleep or an unexpected exit.</Description>
+    <Description>Starts Website Blocker quietly after sign-in and restores it after sleep or an unexpected exit.</Description>
     <URI>\\{TASK_NAME}</URI>
   </RegistrationInfo>
   <Triggers>
@@ -180,11 +180,11 @@ def set_launch_at_startup(enabled: bool, executable: Path | None = None) -> tupl
     try:
         program, arguments, working_directory = application_parts(executable)
         if enabled and not program.exists():
-            return False, f"The LumaGuard executable was not found at {program}."
+            return False, f"The Website Blocker executable was not found at {program}."
 
         if enabled and not _task_matches(program, arguments):
             xml_text = scheduled_task_xml(program, arguments, working_directory, _current_user())
-            handle, temporary_name = tempfile.mkstemp(prefix="lumaguard-startup-", suffix=".xml")
+            handle, temporary_name = tempfile.mkstemp(prefix="website-blocker-startup-", suffix=".xml")
             os.close(handle)
             temporary_path = Path(temporary_name)
             try:
@@ -205,7 +205,7 @@ def set_launch_at_startup(enabled: bool, executable: Path | None = None) -> tupl
 
         _remove_legacy_run_value()
         if enabled:
-            return True, "LumaGuard will start elevated after sign-in and recover after sleep or an unexpected exit."
-        return True, "LumaGuard startup was disabled."
+            return True, "Website Blocker will start elevated after sign-in and recover after sleep or an unexpected exit."
+        return True, "Website Blocker startup was disabled."
     except (OSError, ValueError) as exc:
         return False, str(exc)

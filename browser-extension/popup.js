@@ -18,9 +18,9 @@ function applyAppearance(result) {
 
 function sendStatus(callback) {
   if (globalThis.browser) {
-    browser.runtime.sendMessage({type: "lumaguard-status"}).then(callback).catch(() => callback(null));
+    browser.runtime.sendMessage({type: "website-blocker-status"}).then(callback).catch(() => callback(null));
   } else {
-    chrome.runtime.sendMessage({type: "lumaguard-status"}, (result) => {
+    chrome.runtime.sendMessage({type: "website-blocker-status"}, (result) => {
       callback(chrome.runtime.lastError ? null : result);
     });
   }
@@ -37,7 +37,7 @@ function render(result) {
     statusText.textContent = "Desktop app connected";
   } else {
     title.textContent = "Desktop app not found";
-    detail.textContent = "Start LumaGuard, then check again. Whole-browser limits do not need this companion.";
+    detail.textContent = "Start Website Blocker, then check again. Whole-browser limits do not need this companion.";
     status.classList.add("offline");
     statusText.textContent = "Not connected";
   }
@@ -46,7 +46,7 @@ function render(result) {
 function check() {
   checkButton.disabled = true;
   title.textContent = "Checking connection…";
-  detail.textContent = "Looking for the LumaGuard desktop app.";
+  detail.textContent = "Looking for the Website Blocker desktop app.";
   status.className = "status waiting";
   statusText.textContent = "Checking";
   sendStatus(render);

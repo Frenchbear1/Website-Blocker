@@ -293,7 +293,7 @@ class UsageStore:
         target_type: str | None = None,
         target_id: str | None = None,
         excluded_app_ids: set[str] | None = None,
-        exclude_lumaguard_apps: bool = False,
+        exclude_website_blocker_apps: bool = False,
     ) -> dict[str, int]:
         bucket_expression = {
             "hour": "day || ' ' || printf('%02d', hour)",
@@ -319,9 +319,12 @@ class UsageStore:
                 f"NOT (target_type = 'app' AND target_id IN ({placeholders}))"
             )
             params.extend(excluded)
-        if exclude_lumaguard_apps:
+        if exclude_website_blocker_apps:
             clauses.append(
-                "NOT (target_type = 'app' AND target_id LIKE 'lumaguard%.exe')"
+                "NOT (target_type = 'app' AND ("
+                "target_id LIKE 'website blocker%.exe' OR "
+                "target_id LIKE 'website-blocker%.exe' OR "
+                "target_id LIKE 'website_blocker%.exe'))"
             )
         where = " AND ".join(clauses)
         with self._lock, self._connect() as connection:

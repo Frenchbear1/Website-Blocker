@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "assets" / "lumaguard.ico"
+OUTPUT = ROOT / "assets" / "website_blocker.ico"
 EXTENSION_OUTPUT = ROOT / "browser-extension" / "icons"
 ACCENT_COLORS = {
     "violet": (139, 124, 255, 255),

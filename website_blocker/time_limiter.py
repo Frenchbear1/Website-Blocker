@@ -29,7 +29,7 @@ SCREEN_USAGE_IGNORED_EXECUTABLES = {
     "ctfmon.exe",
     "dwm.exe",
     "lockapp.exe",
-    "lumaguard.exe",
+    "website blocker.exe",
     "python.exe",
     "pythonw.exe",
     "searchhost.exe",
@@ -54,9 +54,10 @@ APP_DISPLAY_NAMES = {
 }
 
 
-def _is_lumaguard_executable(value: str) -> bool:
+def _is_website_blocker_executable(value: str) -> bool:
     filename = Path(value.strip().lower()).name
-    return filename.startswith("lumaguard") and filename.endswith(".exe")
+    normalized = filename.replace("-", " ").replace("_", " ")
+    return normalized.startswith("website blocker") and filename.endswith(".exe")
 
 
 class TimeLimitEngine(QObject):
@@ -176,7 +177,7 @@ class TimeLimitEngine(QObject):
         return bool(
             executable_name
             and executable_name not in SCREEN_USAGE_IGNORED_EXECUTABLES
-            and not _is_lumaguard_executable(executable_name)
+            and not _is_website_blocker_executable(executable_name)
         )
 
     @staticmethod
@@ -215,7 +216,7 @@ class TimeLimitEngine(QObject):
         )
         app = self._app_provider() if needs_foreground else None
         if app:
-            own_names = {"lumaguard.exe", "python.exe", "pythonw.exe"} if self.preview else {"lumaguard.exe"}
+            own_names = {"website blocker.exe", "python.exe", "pythonw.exe"} if self.preview else {"website blocker.exe"}
             if app.executable_name not in own_names:
                 if (
                     settings.screen_usage_enabled
@@ -447,7 +448,7 @@ class TimeLimitEngine(QObject):
             for entry in combined.values()
             if not (
                 entry.target_type == "app"
-                and _is_lumaguard_executable(entry.target_id)
+                and _is_website_blocker_executable(entry.target_id)
             )
         ]
         return sorted(visible, key=lambda entry: (-entry.seconds, entry.display_name.lower()))
@@ -481,7 +482,7 @@ class TimeLimitEngine(QObject):
                 continue
             if normalized_target and identifier != normalized_target:
                 continue
-            if kind == "app" and _is_lumaguard_executable(identifier):
+            if kind == "app" and _is_website_blocker_executable(identifier):
                 continue
             if exclude_browser_apps and kind == "app" and identifier in BROWSER_EXECUTABLES:
                 continue

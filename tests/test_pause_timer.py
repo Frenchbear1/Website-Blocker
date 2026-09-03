@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from lumaguard.pause_timer import PausePhase, format_countdown, pause_timer_state
+from website_blocker.pause_timer import PausePhase, format_countdown, pause_timer_state
 
 
 def test_pause_timer_moves_from_countdown_to_bounded_window():

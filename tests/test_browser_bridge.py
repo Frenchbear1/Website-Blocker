@@ -3,10 +3,10 @@ from datetime import datetime
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-from lumaguard.browser_bridge import BrowserBridge, _allowed_origin
-from lumaguard.models import AppSettings, TimeLimitRule
-from lumaguard.storage import UsageStore
-from lumaguard.time_limiter import TimeLimitEngine
+from website_blocker.browser_bridge import BrowserBridge, _allowed_origin
+from website_blocker.models import AppSettings, TimeLimitRule
+from website_blocker.storage import UsageStore
+from website_blocker.time_limiter import TimeLimitEngine
 
 
 def test_bridge_accepts_extension_and_omitted_origins():
@@ -40,7 +40,7 @@ def test_bridge_accepts_block_for_today_decision(tmp_path):
         request = Request(
             f"http://127.0.0.1:{port}/decision",
             data=json.dumps({"browser": "chrome", "domain": "example.com", "action": "block_today"}).encode(),
-            headers={"Content-Type": "application/json", "X-LumaGuard-Companion": "1"},
+            headers={"Content-Type": "application/json", "X-Website-Blocker-Companion": "1"},
             method="POST",
         )
         with urlopen(request, timeout=3) as response:

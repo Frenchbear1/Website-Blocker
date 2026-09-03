@@ -1,4 +1,4 @@
-from lumaguard.theme import menu_stylesheet, stylesheet
+from website_blocker.theme import menu_stylesheet, stylesheet
 
 
 def test_detached_tray_menu_has_explicit_item_colors():

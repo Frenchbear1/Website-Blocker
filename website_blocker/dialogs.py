@@ -221,7 +221,7 @@ class LimitWarningDialog(QDialog):
         card_layout.addWidget(body)
 
         footer = QHBoxLayout()
-        note = QLabel("LumaGuard pauses counting while this message has focus.")
+        note = QLabel("Website Blocker pauses counting while this message has focus.")
         note.setObjectName("limitWarningNote")
         note.setWordWrap(True)
         dismiss = QPushButton("Got it")
@@ -718,7 +718,7 @@ class TimeLimitDialog(StyledDialog):
         if website:
             self.target_prompt.setText("Enter or choose a website")
             self.target_help.setText(
-                "This is the only option that needs the companion. LumaGuard receives the domain only—not the full URL or page title."
+                "This is the only option that needs the companion. Website Blocker receives the domain only—not the full URL or page title."
             )
         else:
             self.target_prompt.setText("Choose an app that is open now")
@@ -765,15 +765,15 @@ class TimeLimitDialog(StyledDialog):
             return
         if self._selected_enforcement() == "warn" and self._selected_target_type() == "website":
             text = (
-                "At the limit, LumaGuard blurs the website behind a focused warning. "
+                "At the limit, Website Blocker blurs the website behind a focused warning. "
                 "You can dismiss it or choose a strict block for the rest of today."
             )
         elif self._selected_enforcement() == "warn":
-            text = "At the limit, LumaGuard shows a focused popup on the app's monitor without closing it."
+            text = "At the limit, Website Blocker shows a focused popup on the app's monitor without closing it."
         elif self._selected_target_type() == "app":
-            text = "At the limit, LumaGuard asks the active app to close normally. Save prompts still work; it is never force-killed."
+            text = "At the limit, Website Blocker asks the active app to close normally. Save prompts still work; it is never force-killed."
         else:
-            text = "At the limit, the companion replaces that website with your LumaGuard boundary page."
+            text = "At the limit, the companion replaces that website with your Website Blocker boundary page."
         self.safety_note.setText(text)
         self._update_summary()
 
@@ -906,7 +906,7 @@ class MessageDialog(StyledDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 26, 28, 24)
         layout.setSpacing(18)
-        eyebrow = {"warning": "ATTENTION", "question": "CONFIRM ACTION"}.get(kind, "LUMAGUARD")
+        eyebrow = {"warning": "ATTENTION", "question": "CONFIRM ACTION"}.get(kind, "WEBSITE BLOCKER")
         self.add_header(layout, eyebrow, title, "")
 
         panel = QFrame()

@@ -1,5 +1,5 @@
-from lumaguard.main_window import MainWindow
-from lumaguard.constants import COOLDOWN_OPTIONS, PAUSE_WINDOW_OPTIONS
+from website_blocker.main_window import MainWindow
+from website_blocker.constants import COOLDOWN_OPTIONS, PAUSE_WINDOW_OPTIONS
 
 
 def test_cooldown_duration_labels():

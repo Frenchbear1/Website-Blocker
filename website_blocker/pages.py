@@ -727,7 +727,7 @@ class SettingsPage(ScrollPage):
             "Starts elevated after sign-in and recovers after sleep, unlock, or an unexpected exit.",
             settings.launch_at_startup,
         )
-        self.tray = SettingRow("Close to system tray", "Keep LumaGuard running when the window is closed.", settings.minimize_to_tray)
+        self.tray = SettingRow("Close to system tray", "Keep Website Blocker running when the window is closed.", settings.minimize_to_tray)
         self.notifications = SettingRow("Status notifications", "", settings.notifications)
         self.startup.toggled.connect(lambda value: self.preference_changed.emit("launch_at_startup", value))
         self.tray.toggled.connect(lambda value: self.preference_changed.emit("minimize_to_tray", value))
@@ -852,7 +852,7 @@ class SettingsPage(ScrollPage):
             accent_layout.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
         self.layout.addWidget(accent_card)
 
-        about = QLabel(f"LumaGuard {APP_VERSION} · Settings and activity remain on this computer.")
+        about = QLabel(f"Website Blocker {APP_VERSION} · Settings and activity remain on this computer.")
         about.setObjectName("tiny")
         about.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(about)

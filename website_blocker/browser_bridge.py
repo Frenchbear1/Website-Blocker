@@ -39,7 +39,7 @@ class BrowserBridge:
         bridge = self
 
         class Handler(BaseHTTPRequestHandler):
-            server_version = "LumaGuardBridge/1"
+            server_version = "WebsiteBlockerBridge/1"
 
             def _origin(self) -> str:
                 return self.headers.get("Origin", "")
@@ -51,7 +51,7 @@ class BrowserBridge:
                 if _allowed_origin(origin):
                     self.send_header("Access-Control-Allow-Origin", origin)
                     self.send_header("Vary", "Origin")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type, X-LumaGuard-Companion")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Website-Blocker-Companion")
                 self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
@@ -71,14 +71,14 @@ class BrowserBridge:
                     self._json({"ok": False}, 404)
                     return
                 self._json(
-                    {"ok": True, "service": "LumaGuard", "version": 1, **bridge.engine.companion_appearance()}
+                    {"ok": True, "service": "Website Blocker", "version": 1, **bridge.engine.companion_appearance()}
                 )
 
             def do_POST(self):  # noqa: N802
                 if (
                     self.path not in ("/heartbeat", "/presence", "/decision")
                     or not _allowed_origin(self._origin())
-                    or self.headers.get("X-LumaGuard-Companion") != "1"
+                    or self.headers.get("X-Website-Blocker-Companion") != "1"
                 ):
                     self._json({"ok": False}, 403)
                     return
@@ -92,7 +92,7 @@ class BrowserBridge:
                             {
                                 "ok": True,
                                 "connected": True,
-                                "service": "LumaGuard",
+                                "service": "Website Blocker",
                                 **bridge.engine.companion_appearance(),
                             }
                         )
@@ -121,7 +121,7 @@ class BrowserBridge:
         try:
             self.server = ThreadingHTTPServer((self.host, self.port), Handler)
             self.server.daemon_threads = True
-            self.thread = threading.Thread(target=self.server.serve_forever, name="LumaGuardBrowserBridge", daemon=True)
+            self.thread = threading.Thread(target=self.server.serve_forever, name="WebsiteBlockerBrowserBridge", daemon=True)
             self.thread.start()
             self.error = ""
             return True
