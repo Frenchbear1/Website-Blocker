@@ -1,4 +1,12 @@
-from website_blocker.system_filter import END_MARKER, START_MARKER, PreviewSystemFilter, SystemFilter, render_hosts_content
+from website_blocker.system_filter import (
+    END_MARKER,
+    NRPT_RULE_COMMENT,
+    START_MARKER,
+    PreviewSystemFilter,
+    SystemFilter,
+    render_allowed_dns_script,
+    render_hosts_content,
+)
 from website_blocker.models import AppSettings
 
 
@@ -51,3 +59,13 @@ def test_hosts_rules_are_written_and_removed_in_place(tmp_path):
     assert backup.exists()
     assert engine._write_hosts([], []) is True
     assert START_MARKER not in hosts.read_text(encoding="utf-8")
+
+
+def test_allowed_domains_get_bounded_unfiltered_dns_rules():
+    script = render_allowed_dns_script(["Allowed.Example", "https://second.example/path"])
+
+    assert f"Comment -eq '{NRPT_RULE_COMMENT}'" in script
+    assert "@('allowed.example','.allowed.example')" in script
+    assert "@('second.example','.second.example')" in script
+    assert "'1.1.1.1','1.0.0.1'" in script
+    assert "Clear-DnsClientCache" in script

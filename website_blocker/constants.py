@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 APP_NAME = "Website Blocker"
-APP_VERSION = "0.4.6"
+APP_VERSION = "0.4.7"
 APP_ID = "WebsiteBlocker.Desktop"
 
 

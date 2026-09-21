@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QPushButton
 from website_blocker.constants import DNS_PRESETS
 from website_blocker.dialogs import MessageDialog, PinDialog, ScheduleDialog
 from website_blocker.main_window import MainWindow
-from website_blocker.models import AppSettings, ScreenUsageEntry
+from website_blocker.models import AppSettings, EventRecord, ScreenUsageEntry, TimeLimitRule
 from website_blocker.pages import DomainColumn, LimitsPage, ProfilesPage, SchedulePage, SettingsPage
 from website_blocker.security import create_pin_hash
 from website_blocker.storage import EventStore, SettingsStore, UsageStore
@@ -62,6 +62,7 @@ def test_domain_column_hides_empty_list_space():
     column.set_domains([])
     assert column.list.isHidden()
     assert column.remove_button.isHidden()
+    assert column.list.height() == 0
 
     column.set_domains(["example.com"])
     assert not column.list.isHidden()
@@ -238,3 +239,134 @@ def test_usage_period_builds_complete_day_week_month_and_forever_ranges():
     assert usage_period("month", today=today).days == 10
     forever = usage_period("all", "2026-06-12", today=today)
     assert forever.keys == ("2026-06", "2026-07", "2026-08")
+
+
+def test_usage_period_pans_by_selected_granularity():
+    today = date(2026, 8, 10)
+
+    assert usage_period("day", today=today, offset=-1).start.isoformat() == "2026-08-09"
+    assert usage_period("week", today=today, offset=-1).start.isoformat() == "2026-07-28"
+    july = usage_period("month", today=today, offset=-1)
+    assert july.start.isoformat() == "2026-07-01"
+    assert july.end.isoformat() == "2026-07-31"
+
+
+def test_pin_guards_profile_changes_and_site_rule_removal(tmp_path, monkeypatch):
+    _app()
+    salt, digest = create_pin_hash("4827")
+    settings_store = SettingsStore(tmp_path / "settings.json")
+    settings_store.save(
+        AppSettings(
+            active_profile="strong",
+            blocked_domains=["example.com"],
+            lock_enabled=True,
+            pin_salt=salt,
+            pin_hash=digest,
+        )
+    )
+    window = MainWindow(
+        settings_store,
+        EventStore(tmp_path / "events.json"),
+        UsageStore(tmp_path / "usage.db"),
+        PreviewSystemFilter(),
+        preview=True,
+    )
+
+    class WrongPinDialog:
+        class DialogCode:
+            Accepted = 1
+
+        value = "wrong"
+
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exec(self):
+            return self.DialogCode.Accepted
+
+    monkeypatch.setattr("website_blocker.main_window.PinDialog", WrongPinDialog)
+    monkeypatch.setattr("website_blocker.main_window.show_message", lambda *_args, **_kwargs: None)
+
+    window.set_profile("balanced")
+    window.remove_domain("blocked", "example.com")
+
+    assert window.settings.active_profile == "strong"
+    assert window.settings.blocked_domains == ["example.com"]
+    window._force_quit = True
+    window.tray.hide()
+    window.close()
+
+
+def test_time_limit_shutdown_uses_pin_and_shared_cooldown(tmp_path, monkeypatch):
+    _app()
+    salt, digest = create_pin_hash("4827")
+    settings_store = SettingsStore(tmp_path / "settings.json")
+    settings_store.save(
+        AppSettings(
+            limits_enabled=True,
+            time_limits=[TimeLimitRule(target="focus.exe")],
+            cooldown_minutes=1,
+            pause_window_minutes=30,
+            lock_enabled=True,
+            pin_salt=salt,
+            pin_hash=digest,
+        )
+    )
+    window = MainWindow(
+        settings_store,
+        EventStore(tmp_path / "events.json"),
+        UsageStore(tmp_path / "usage.db"),
+        PreviewSystemFilter(),
+        preview=True,
+    )
+    monkeypatch.setattr("website_blocker.main_window.show_message", lambda *_args, **_kwargs: None)
+
+    window.set_limits_master(False)
+    window._tick_pause_status()
+
+    assert window.settings.limits_enabled is True
+    assert window.settings.pause_available_at
+
+    class CorrectPinDialog:
+        class DialogCode:
+            Accepted = 1
+
+        value = "4827"
+
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def exec(self):
+            return self.DialogCode.Accepted
+
+    monkeypatch.setattr("website_blocker.main_window.PinDialog", CorrectPinDialog)
+    window.settings.pause_available_at = (datetime.now() - timedelta(seconds=1)).isoformat(timespec="seconds")
+
+    window.set_limits_master(False)
+
+    assert window.settings.limits_enabled is False
+    assert window.settings.pause_available_at == ""
+    window._force_quit = True
+    window.tray.hide()
+    window.close()
+
+
+def test_dashboard_recent_activity_can_be_cleared(tmp_path):
+    _app()
+    event_store = EventStore(tmp_path / "events.json")
+    event_store.add(EventRecord("success", "Saved", "Detail"))
+    window = MainWindow(
+        SettingsStore(tmp_path / "settings.json"),
+        event_store,
+        UsageStore(tmp_path / "usage.db"),
+        PreviewSystemFilter(),
+        preview=True,
+    )
+
+    window.clear_recent_activity()
+
+    assert event_store.load() == []
+    assert window.dashboard_page.clear_activity_button.isHidden()
+    window._force_quit = True
+    window.tray.hide()
+    window.close()

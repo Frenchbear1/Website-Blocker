@@ -264,6 +264,12 @@ def stylesheet(accent_name: str = "violet", mode: str = "dark") -> str:
     QPushButton#dangerButton {{ background-color: {c['danger_bg']}; color: #D94E6A; border-color: {c['danger_border']}; }}
     QPushButton#ghostButton {{ background: transparent; border-color: {c['border_strong']}; }}
     QPushButton#linkButton {{ background: transparent; border: none; color: {accent}; min-height: 0; padding: 4px; text-align: left; }}
+    QPushButton#chartNavButton {{
+        background-color: {c['surface_alt']}; border: 1px solid {c['border_strong']};
+        border-radius: 10px; min-width: 38px; max-width: 38px; min-height: 34px; max-height: 34px;
+        padding: 0 0 3px 0; color: {accent}; font-size: 25px; font-weight: 650;
+    }}
+    QPushButton#chartNavButton:hover {{ background-color: {c['selected']}; border-color: {accent}; }}
     QPushButton#navButton {{
         background: transparent;
         border: none;

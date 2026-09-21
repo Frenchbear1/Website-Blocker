@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import lru_cache
@@ -68,9 +69,16 @@ class UsagePeriod:
     days: int
 
 
-def usage_period(range_key: str, first_day: str | None = None, today: date | None = None) -> UsagePeriod:
-    current = today or date.today()
+def usage_period(
+    range_key: str,
+    first_day: str | None = None,
+    today: date | None = None,
+    offset: int = 0,
+) -> UsagePeriod:
+    today_value = today or date.today()
+    offset = min(0, int(offset))
     if range_key == "week":
+        current = today_value + timedelta(days=offset * 7)
         start = current - timedelta(days=6)
         dates = [start + timedelta(days=index) for index in range(7)]
         return UsagePeriod(
@@ -79,11 +87,18 @@ def usage_period(range_key: str, first_day: str | None = None, today: date | Non
             "day",
             tuple(day.isoformat() for day in dates),
             tuple(day.strftime("%a") for day in dates),
-            "Last 7 days",
+            "Last 7 days" if offset == 0 else f"{start.strftime('%b %d')} – {current.strftime('%b %d, %Y')}",
             7,
         )
     if range_key == "month":
-        start = current.replace(day=1)
+        month_index = today_value.year * 12 + today_value.month - 1 + offset
+        year, zero_based_month = divmod(month_index, 12)
+        start = date(year, zero_based_month + 1, 1)
+        current = (
+            today_value
+            if offset == 0
+            else date(year, zero_based_month + 1, monthrange(year, zero_based_month + 1)[1])
+        )
         dates = [start + timedelta(days=index) for index in range((current - start).days + 1)]
         return UsagePeriod(
             start,
@@ -95,6 +110,7 @@ def usage_period(range_key: str, first_day: str | None = None, today: date | Non
             len(dates),
         )
     if range_key == "all":
+        current = today_value
         try:
             start = date.fromisoformat(first_day) if first_day else current
         except ValueError:
@@ -114,12 +130,14 @@ def usage_period(range_key: str, first_day: str | None = None, today: date | Non
             f"Since {start.strftime('%b %Y')}",
             max(1, (current - start).days + 1),
         )
+    current = today_value + timedelta(days=offset)
     keys = tuple(f"{current.isoformat()} {hour:02d}" for hour in range(24))
     labels = tuple(
         "12a" if hour == 0 else f"{hour}a" if hour < 12 else "12p" if hour == 12 else f"{hour - 12}p"
         for hour in range(24)
     )
-    return UsagePeriod(current, current, "hour", keys, labels, "Today", 1)
+    title = "Today" if offset == 0 else current.strftime("%A, %b %d, %Y")
+    return UsagePeriod(current, current, "hour", keys, labels, title, 1)
 
 
 class UsageChart(QWidget):
@@ -306,6 +324,7 @@ class ScreenUsagePage(QScrollArea):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.range_key = "day"
+        self.period_offset = 0
         self.type_filter = "all"
         self._selected: tuple[str, str] | None = None
 
@@ -393,11 +412,28 @@ class ScreenUsagePage(QScrollArea):
         self.show_all.setObjectName("linkButton")
         self.show_all.clicked.connect(self._clear_selection)
         self.show_all.hide()
-        summary.addWidget(self.show_all, 0, Qt.AlignmentFlag.AlignTop)
+        summary.addWidget(self.show_all, 0, Qt.AlignmentFlag.AlignVCenter)
         summary.addLayout(total_column)
         self.chart = UsageChart()
         chart_layout.addLayout(summary)
         chart_layout.addWidget(self.chart)
+        period_navigation = QHBoxLayout()
+        self.previous_period = QPushButton("‹")
+        self.previous_period.setObjectName("chartNavButton")
+        self.previous_period.setAccessibleName("Previous period")
+        self.previous_period.setToolTip("Previous period")
+        self.previous_period.setFixedSize(38, 34)
+        self.previous_period.clicked.connect(lambda: self._shift_period(-1))
+        self.next_period = QPushButton("›")
+        self.next_period.setObjectName("chartNavButton")
+        self.next_period.setAccessibleName("Next period")
+        self.next_period.setToolTip("Next period")
+        self.next_period.setFixedSize(38, 34)
+        self.next_period.clicked.connect(lambda: self._shift_period(1))
+        period_navigation.addWidget(self.previous_period)
+        period_navigation.addStretch()
+        period_navigation.addWidget(self.next_period)
+        chart_layout.addLayout(period_navigation)
         content_layout.addWidget(self.chart_card)
 
         activity_header = QHBoxLayout()
@@ -425,6 +461,16 @@ class ScreenUsagePage(QScrollArea):
         if value == self.range_key:
             return
         self.range_key = value
+        self.period_offset = 0
+        self.view_changed.emit()
+
+    def _shift_period(self, direction: int) -> None:
+        if self.range_key == "all":
+            return
+        next_offset = min(0, self.period_offset + (-1 if direction < 0 else 1))
+        if next_offset == self.period_offset:
+            return
+        self.period_offset = next_offset
         self.view_changed.emit()
 
     def _set_filter(self) -> None:
@@ -464,6 +510,7 @@ class ScreenUsagePage(QScrollArea):
         period_title: str,
         period_days: int,
         connected_browsers: list[str],
+        can_previous: bool = True,
     ) -> None:
         self.set_enabled(settings.screen_usage_enabled)
         if not settings.screen_usage_enabled:
@@ -496,6 +543,11 @@ class ScreenUsagePage(QScrollArea):
         self.total_label.setText(usage_time_text(total))
         self.average_label.setText("Day total" if period_days == 1 else f"{usage_time_text(total // max(1, period_days))} daily average")
         self.show_all.setVisible(selected is not None)
+        can_navigate = self.range_key != "all"
+        self.previous_period.setVisible(can_navigate)
+        self.next_period.setVisible(can_navigate)
+        self.previous_period.setEnabled(can_navigate and can_previous)
+        self.next_period.setEnabled(can_navigate and self.period_offset < 0)
         self.chart.setProperty("theme", settings.theme)
         self.chart.set_data(series, color)
 

@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Daily limit reached · Website Blocker</title>
+    <title>Site blocked · Website Blocker</title>
     <link rel="stylesheet" href="blocked.css">
   </head>
   <body>
     <main class="card">
       <div class="shield">◇</div>
       <p class="eyebrow">WEBSITE BLOCKER</p>
-      <h1>That’s enough for today.</h1>
-      <p class="body"><strong id="domain">This website</strong> has reached the daily time allowance you chose.</p>
-      <p class="note">Time resets automatically at local midnight on an active day. Keep Website Blocker running for website limits to work.</p>
+      <h1 id="blocked-title">This site is blocked.</h1>
+      <p class="body"><strong id="domain">This website</strong> <span id="blocked-reason">is unavailable under the current Website Blocker rules.</span></p>
+      <p class="note" id="blocked-note">Change the rule in the desktop app, then check again.</p>
       <div class="actions">
         <button id="check">Check again</button>
         <button id="back" class="secondary">Go back</button>

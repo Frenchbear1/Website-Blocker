@@ -63,6 +63,7 @@ class ScrollPage(QScrollArea):
 class DashboardPage(ScrollPage):
     protection_requested = Signal(bool)
     navigation_requested = Signal(str)
+    clear_activity_requested = Signal()
 
     def __init__(self, settings: AppSettings, parent: QWidget | None = None):
         super().__init__(parent)
@@ -132,9 +133,17 @@ class DashboardPage(ScrollPage):
         activity_layout = QVBoxLayout(activity)
         activity_layout.setContentsMargins(20, 19, 20, 19)
         activity_layout.setSpacing(10)
+        activity_header = QHBoxLayout()
         activity_title = QLabel("Recent activity")
         activity_title.setObjectName("sectionTitle")
-        activity_layout.addWidget(activity_title)
+        self.clear_activity_button = QPushButton("Clear")
+        self.clear_activity_button.setObjectName("linkButton")
+        self.clear_activity_button.setToolTip("Clear recent activity")
+        self.clear_activity_button.clicked.connect(self.clear_activity_requested)
+        activity_header.addWidget(activity_title)
+        activity_header.addStretch()
+        activity_header.addWidget(self.clear_activity_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        activity_layout.addLayout(activity_header)
         self.activity_layout = QVBoxLayout()
         self.activity_layout.setSpacing(7)
         activity_layout.addLayout(self.activity_layout)
@@ -156,6 +165,7 @@ class DashboardPage(ScrollPage):
         self.profile_pill.setText(f"{profile['name']} profile")
         self.protection_button.set_active(enabled)
         self.protection_button.setProperty("willEnable", not enabled)
+        self.clear_activity_button.setVisible(bool(events))
         _clear_layout(self.activity_layout)
         if not events:
             label = QLabel("No recent activity")
@@ -186,7 +196,7 @@ class DashboardPage(ScrollPage):
 
     def update_pause_timer(self, settings: AppSettings, now: datetime | None = None) -> None:
         state = pause_timer_state(settings.pause_available_at, settings.pause_window_minutes, now)
-        if not settings.protection_enabled or state.phase not in (PausePhase.COUNTDOWN, PausePhase.WINDOW):
+        if state.phase not in (PausePhase.COUNTDOWN, PausePhase.WINDOW):
             self.pause_banner.hide()
             self.hero.setFixedHeight(205)
             return
@@ -199,18 +209,18 @@ class DashboardPage(ScrollPage):
         close_bound = settings.pause_window_minutes == 0
         self.pause_value_label.setText("READY" if close_bound and state.phase == PausePhase.WINDOW else format_countdown(state.seconds_remaining))
         if state.phase == PausePhase.COUNTDOWN:
-            self.pause_phase_label.setText("PAUSE COUNTDOWN")
+            self.pause_phase_label.setText("CHANGE COOLDOWN")
             self.pause_detail_label.setText(
-                "The pause window stays available until you close this window."
+                "The change window stays available until you close this window."
                 if close_bound
-                else f"A {settings.pause_window_minutes}-minute pause window opens when this reaches zero."
+                else f"A {settings.pause_window_minutes}-minute change window opens when this reaches zero."
             )
         else:
-            self.pause_phase_label.setText("PAUSE WINDOW OPEN")
+            self.pause_phase_label.setText("CHANGE WINDOW OPEN")
             self.pause_detail_label.setText(
-                "Pause protection now. Closing this window resets the cooldown."
+                "Make the protected change now. Closing this window resets the cooldown."
                 if close_bound
-                else "Pause protection before this window closes, or the delay resets."
+                else "Make the protected change before this window closes, or the delay resets."
             )
         self.pause_banner.show()
         self.hero.setFixedHeight(258)
@@ -312,6 +322,7 @@ class DomainColumn(QFrame):
     def __init__(self, title: str, placeholder: str, action_text: str, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("card")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(19, 18, 19, 18)
         layout.setSpacing(10)
@@ -354,8 +365,11 @@ class DomainColumn(QFrame):
         self.list.setVisible(has_domains)
         self.remove_button.setVisible(has_domains)
         if has_domains:
-            row_height = self.list.sizeHintForRow(0)
-            self.list.setFixedHeight(min(188, max(42, row_height * len(domains) + 8)))
+            visible_rows = min(4, len(domains))
+            rows_height = sum(max(1, self.list.sizeHintForRow(index)) for index in range(visible_rows))
+            self.list.setFixedHeight(rows_height + (2 * self.list.frameWidth()) + 2)
+        else:
+            self.list.setFixedHeight(0)
         self.input.clear()
 
 
@@ -389,8 +403,8 @@ class RulesPage(ScrollPage):
         self.allowed.add_requested.connect(lambda value: self.add_domain.emit("allowed", value))
         self.blocked.remove_requested.connect(lambda value: self.remove_domain.emit("blocked", value))
         self.allowed.remove_requested.connect(lambda value: self.remove_domain.emit("allowed", value))
-        columns.addWidget(self.blocked, 1)
-        columns.addWidget(self.allowed, 1)
+        columns.addWidget(self.blocked, 1, Qt.AlignmentFlag.AlignTop)
+        columns.addWidget(self.allowed, 1, Qt.AlignmentFlag.AlignTop)
         self.layout.addLayout(columns)
         self.layout.addStretch()
         self.refresh(settings)
@@ -770,9 +784,9 @@ class SettingsPage(ScrollPage):
         cooldown_layout = QHBoxLayout(cooldown_card)
         cooldown_layout.setContentsMargins(18, 13, 16, 13)
         cooldown_text = QVBoxLayout()
-        cooldown_title = QLabel("Pause cooldown")
+        cooldown_title = QLabel("Protected-change cooldown")
         cooldown_title.setObjectName("cardTitle")
-        cooldown_detail = QLabel("Choose a pause delay from 1 minute to 1 day. Enforced while this app is running.")
+        cooldown_detail = QLabel("Sets the wait before pausing protection or weakening a time limit. Enforced while this app is running.")
         cooldown_detail.setObjectName("muted")
         cooldown_detail.setWordWrap(True)
         cooldown_text.addWidget(cooldown_title)
@@ -792,9 +806,9 @@ class SettingsPage(ScrollPage):
         window_layout = QHBoxLayout(window_card)
         window_layout.setContentsMargins(18, 13, 16, 13)
         window_text = QVBoxLayout()
-        window_title = QLabel("Pause window")
+        window_title = QLabel("Change window")
         window_title.setObjectName("cardTitle")
-        window_detail = QLabel("Choose a timer, or keep the pause window open until this window closes.")
+        window_detail = QLabel("Choose how long a protected change stays available after the cooldown.")
         window_detail.setObjectName("muted")
         window_detail.setWordWrap(True)
         window_text.addWidget(window_title)
@@ -864,7 +878,7 @@ class SettingsPage(ScrollPage):
         self.tray.setChecked(settings.minimize_to_tray)
         self.notifications.setChecked(settings.notifications)
         self.pin_detail.setText(
-            "Enabled — required before protection can be paused or time-limit usage can be reset."
+            "Enabled — protects profiles, site-rule removal, pause controls, and time-limit changes."
             if settings.lock_enabled
             else "Optional — let someone you trust hold the PIN."
         )

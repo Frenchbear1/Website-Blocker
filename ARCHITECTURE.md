@@ -13,7 +13,7 @@
 - `website_blocker/models.py` — serializable settings, events, schedules, and time-limit rules
 - `website_blocker/win_activity.py` — Win32 foreground-window and open-application discovery
 - `website_blocker/time_limiter.py` — app/domain accounting, warnings, and graceful enforcement
-- `website_blocker/browser_bridge.py` — extension-only local HTTP heartbeat bridge
+- `website_blocker/browser_bridge.py` — extension-only local HTTP bridge for site policy, presence, and focused-domain heartbeats
 - `browser-extension/` — Chrome/Edge Manifest V3 and Firefox companion sources
 
 ## Safety invariants
@@ -22,6 +22,7 @@
 - DNS adapter indexes and server addresses are validated before mutation.
 - Original DNS values are recorded before the first active change.
 - Personal host entries are isolated between two unique marker lines.
+- Allowed-domain DNS exceptions are isolated by a unique NRPT comment and removed with protection.
 - Disabling protection restores the recorded DNS values and removes only marked entries.
 - Preview mode substitutes a non-mutating filter implementation.
 - Time limits count only foreground/focused activity and never force-terminate an app.

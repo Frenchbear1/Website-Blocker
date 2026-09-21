@@ -66,6 +66,9 @@ class EventStore:
         events.insert(0, event)
         _atomic_json_write(self.path, [record.__dict__ for record in events[: self.limit]])
 
+    def clear(self) -> None:
+        _atomic_json_write(self.path, [])
+
 
 class UsageStore:
     """Small local database containing durations, never URLs or window titles."""

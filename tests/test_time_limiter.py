@@ -154,6 +154,28 @@ def test_status_check_does_not_add_blocked_page_time(tmp_path):
     assert engine.used_seconds(rule.id) == 0
 
 
+def test_companion_receives_personal_block_and_allow_policy(tmp_path):
+    settings = AppSettings(
+        protection_enabled=True,
+        blocked_domains=["example.com"],
+        allowed_domains=["safe.example.com"],
+    )
+    engine = TimeLimitEngine(
+        lambda: settings,
+        UsageStore(tmp_path / "usage.db"),
+        preview=True,
+        app_provider=lambda: None,
+    )
+
+    blocked = engine.record_web_heartbeat("chrome", "news.example.com", now=10)
+    allowed = engine.record_web_heartbeat("chrome", "safe.example.com", now=10)
+
+    assert blocked["blocked"] is True
+    assert blocked["block_reason"] == "site_rule"
+    assert allowed["blocked"] is False
+    assert allowed["site_rule"] == "allowed"
+
+
 def test_app_block_uses_normal_close_but_preview_never_does(tmp_path):
     rule = TimeLimitRule(
         target="focus.exe", days=[_weekday()], daily_minutes=1, enforcement="block", warning_minutes=0

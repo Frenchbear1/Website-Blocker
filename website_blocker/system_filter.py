@@ -17,6 +17,8 @@ from .models import AppSettings, FilterResult
 
 START_MARKER = "# >>> WEBSITE BLOCKER MANAGED RULES >>>"
 END_MARKER = "# <<< WEBSITE BLOCKER MANAGED RULES <<<"
+NRPT_RULE_COMMENT = "Website Blocker managed allow rule"
+ALLOWED_SITE_DNS = ("1.1.1.1", "1.0.0.1")
 
 
 def is_windows_admin() -> bool:
@@ -47,6 +49,27 @@ def render_hosts_content(original: str, blocked: list[str], allowed: list[str]) 
         lines.append(f"0.0.0.0 www.{domain}")
     lines.append(END_MARKER)
     return original.rstrip() + "\n\n" + "\n".join(lines) + "\n"
+
+
+def render_allowed_dns_script(allowed: list[str]) -> str:
+    """Build a bounded NRPT update so allow-list entries bypass filtered DNS."""
+    commands = [
+        "$ErrorActionPreference='Stop'",
+        (
+            "Get-DnsClientNrptRule | "
+            f"Where-Object {{ $_.Comment -eq '{NRPT_RULE_COMMENT}' }} | "
+            "ForEach-Object { Remove-DnsClientNrptRule -Name $_.Name -Force }"
+        ),
+    ]
+    servers = ",".join(f"'{server}'" for server in ALLOWED_SITE_DNS)
+    for domain in unique_domains(allowed):
+        commands.append(
+            "Add-DnsClientNrptRule "
+            f"-Namespace @('{domain}','.{domain}') "
+            f"-NameServers @({servers}) -Comment '{NRPT_RULE_COMMENT}'"
+        )
+    commands.append("Clear-DnsClientCache")
+    return "; ".join(commands)
 
 
 class SystemFilter:
@@ -191,6 +214,11 @@ class SystemFilter:
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or "Windows rejected the DNS change")
 
+    def _write_allowed_dns_rules(self, allowed: list[str]) -> None:
+        completed = self._run_powershell(render_allowed_dns_script(allowed))
+        if completed.returncode != 0:
+            raise RuntimeError(completed.stderr.strip() or "Windows rejected the allowed-site DNS rules")
+
     def enable(self, settings: AppSettings) -> FilterResult:
         if not is_windows_admin():
             return FilterResult(False, "Administrator permission is required", "Restart Website Blocker as administrator to change system filtering.")
@@ -211,6 +239,7 @@ class SystemFilter:
                 self._save_state(snapshot)
             indexes = [int(item["interface_index"]) for item in snapshot]
             self._write_hosts(settings.blocked_domains, settings.allowed_domains)
+            self._write_allowed_dns_rules(settings.allowed_domains)
             self._apply_dns(str(primary), str(secondary), indexes)
             return FilterResult(True, "Protection is active", f"Using {profile['provider']} across {len(indexes)} active adapter(s).")
         except (OSError, RuntimeError, ValueError, json.JSONDecodeError, subprocess.SubprocessError) as exc:
@@ -225,6 +254,7 @@ class SystemFilter:
             # Remove personal rules first. If the protected file is temporarily
             # unavailable, DNS stays filtered and the operation is safe to retry.
             self._write_hosts([], [])
+            self._write_allowed_dns_rules([])
             for item in snapshot:
                 index = int(item["interface_index"])
                 servers = [str(ipaddress.ip_address(value)) for value in item.get("servers", [])]

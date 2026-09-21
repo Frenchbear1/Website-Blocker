@@ -204,6 +204,10 @@ class TimeLimitEngine(QObject):
         ]
         return max(candidates, key=lambda item: len(item.target), default=None)
 
+    @staticmethod
+    def _domain_matches(domain: str, candidates: list[str]) -> bool:
+        return any(domain == candidate or domain.endswith(f".{candidate}") for candidate in candidates)
+
     def tick(self) -> None:
         """Account one second for the foreground app. Called by the UI timer."""
         self._ticks_since_flush += 1
@@ -277,9 +281,30 @@ class TimeLimitEngine(QObject):
                 "website", domain, domain, screen_elapsed, source_app=browser_id
             )
 
+        settings = self._settings_provider()
+        site_rule = ""
+        if settings.protection_enabled:
+            if self._domain_matches(domain, settings.allowed_domains):
+                site_rule = "allowed"
+            elif self._domain_matches(domain, settings.blocked_domains):
+                return {
+                    "ok": True,
+                    "blocked": True,
+                    "limited": False,
+                    "domain": domain,
+                    "site_rule": "blocked",
+                    "block_reason": "site_rule",
+                }
+
         rule = self._matching_site_rule(self._rules(), domain)
         if not rule:
-            return {"ok": True, "blocked": False, "limited": False, "domain": domain}
+            return {
+                "ok": True,
+                "blocked": False,
+                "limited": False,
+                "domain": domain,
+                "site_rule": site_rule,
+            }
         if active and previous is not None:
             elapsed = max(0, min(8, int(now_value - previous)))
             self._add_seconds(rule.id, elapsed)
@@ -293,7 +318,10 @@ class TimeLimitEngine(QObject):
             "domain": domain,
             "rule_name": rule.name,
             "remaining_seconds": int(status["remaining_seconds"]),
+            "site_rule": site_rule,
         }
+        if status["blocked"]:
+            response["block_reason"] = "time_limit"
         if status.get("notice"):
             response["notice"] = status["notice"]
         return response

@@ -12,11 +12,11 @@ This repository contains the first functional MVP. Filtering is never activated 
 - Color-coded app and website breakdowns with clickable detail graphs
 - Balanced, Strong, Private, and Custom DNS profiles
 - Strong profile with DNS-enforced SafeSearch support
-- Personal block and allow lists layered through a bounded hosts-file section
+- Personal block and allow lists layered through a bounded hosts-file section and managed DNS exceptions
 - Recurring schedules, including overnight windows
 - Reliable elevated launch after Windows sign-in, with sleep/unlock and crash recovery
-- Slow, salted PIN hashing for accountability locking
-- Optional pause cooldown with 16 choices from 1 minute through 1 day
+- Slow, salted PIN hashing for profile changes, site-rule removal, protection pauses, and time-limit changes
+- Optional protected-change cooldown with 16 choices from 1 minute through 1 day
 - Bounded pause window that automatically relocks after a configurable 5–120 minutes
 - Live dashboard countdown for both cooldown and open pause-window states
 - Daily foreground-use limits for open Windows applications
@@ -27,7 +27,7 @@ This repository contains the first functional MVP. Filtering is never activated 
 - Guided four-step limit creation: target, allowance, days, and action
 - Explicit whole-browser limits that need no browser extension
 - Warning-only or graceful close-and-relock app enforcement (never force termination)
-- Chrome/Edge and Firefox companion source for focused-domain time and website limit pages
+- Chrome/Edge and Firefox companion source for synced personal site rules, focused-domain time, and website limit pages
 - Private local browser bridge on `127.0.0.1`; only domains and durations are stored
 - Honest browser status: Waiting until a companion checks in, then Connected with the browser name
 - Companion toolbar popup with a direct desktop connection check
@@ -77,14 +77,17 @@ After loading or updating the companion, refresh an ordinary website tab and cli
 
 Individual-website limits fail open if Website Blocker is closed. Private/incognito browser windows require explicitly enabling the extension there. App and whole-browser limits do not need an extension, but Website Blocker must remain running. Usage is stored in `%LOCALAPPDATA%\Website Blocker\usage.db`. Each limit card can reset only that rule's current-day counter; if a protection PIN is configured, the PIN is required before the reset is accepted.
 
+When a protection PIN is configured, turning off all limits, disabling an individual limit, editing, removing, or resetting a limit also uses the configured protected-change cooldown. The cooldown window is consumed after a successful change.
+
 ## How filtering works
 
 When protection is enabled, Website Blocker:
 
 1. snapshots IPv4 DNS settings for active network adapters;
 2. applies the selected family-safe DNS resolver;
-3. writes personal rules only inside clearly marked Website Blocker lines in the hosts file, skipping that protected file entirely when no personal rules exist; and
-4. clears the Windows DNS cache.
+3. writes personal blocks only inside clearly marked Website Blocker lines in the hosts file, skipping that protected file entirely when no personal rules exist;
+4. adds bounded Windows DNS namespace rules so allowed domains can use neutral DNS instead of the filtered profile; and
+5. clears the Windows DNS cache.
 
 When protection is paused, Website Blocker restores the snapshot and removes only its own hosts-file section. A one-time backup is stored in `%LOCALAPPDATA%\Website Blocker`.
 

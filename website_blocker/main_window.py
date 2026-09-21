@@ -5,7 +5,7 @@ import ipaddress
 import os
 import shutil
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QSize, QTimer, Qt, QUrl
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
 
         sidebar = QWidget()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(232)
+        sidebar.setFixedWidth(246)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(18, 22, 18, 18)
         sidebar_layout.setSpacing(8)
@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
         name_column.setSpacing(0)
         name = QLabel(APP_NAME)
         name.setObjectName("brandName")
+        name.setMinimumWidth(148)
         name_column.addWidget(name)
         brand.addWidget(self.logo)
         brand.addLayout(name_column)
@@ -212,6 +213,7 @@ class MainWindow(QMainWindow):
     def _wire_pages(self) -> None:
         self.dashboard_page.protection_requested.connect(self.set_protection)
         self.dashboard_page.navigation_requested.connect(self.navigate)
+        self.dashboard_page.clear_activity_requested.connect(self.clear_recent_activity)
         self.usage_page.tracking_toggled.connect(self.set_screen_usage_master)
         self.usage_page.view_changed.connect(self._refresh_screen_usage_page)
         self.profiles_page.profile_selected.connect(self.set_profile)
@@ -304,18 +306,32 @@ class MainWindow(QMainWindow):
     def _event(self, kind: str, title: str, detail: str) -> None:
         self.event_store.add(EventRecord(kind, title, detail))
 
-    def _authorize_pause(self) -> bool:
+    def clear_recent_activity(self) -> None:
+        if not self.events:
+            return
+        self.event_store.clear()
+        self.events = []
+        self.dashboard_page.refresh(self.settings, [])
+
+    def _verify_pin_for_change(self, title: str, prompt: str, failure: str) -> bool:
         if not self.settings.lock_enabled:
             return True
-        dialog = PinDialog("Unlock protection", "Enter your Website Blocker PIN before pausing protection.", parent=self)
+        dialog = PinDialog(title, prompt, parent=self)
         if dialog.exec() != PinDialog.DialogCode.Accepted:
             return False
         if not verify_pin(dialog.value, self.settings.pin_salt, self.settings.pin_hash):
-            show_message(self, "Incorrect PIN", "Protection was not changed.", warning=True)
+            show_message(self, "Incorrect PIN", failure, warning=True)
             return False
         return True
 
-    def _cooldown_allows_pause(self) -> bool:
+    def _authorize_pause(self) -> bool:
+        return self._verify_pin_for_change(
+            "Unlock protection",
+            "Enter your Website Blocker PIN before pausing protection.",
+            "Protection was not changed.",
+        )
+
+    def _cooldown_allows_pause(self, action_label: str = "Pause protection") -> bool:
         minutes = self.settings.cooldown_minutes
         if minutes <= 0:
             return True
@@ -324,8 +340,8 @@ class MainWindow(QMainWindow):
         if state.phase == PausePhase.COUNTDOWN:
             show_message(
                 self,
-                "Pause is cooling down",
-                f"The pause window opens in {format_countdown(state.seconds_remaining)}.",
+                "Change is cooling down",
+                f"The protected change window opens in {format_countdown(state.seconds_remaining)}.",
             )
             return False
         if state.phase == PausePhase.WINDOW:
@@ -336,42 +352,55 @@ class MainWindow(QMainWindow):
         available = now + timedelta(minutes=minutes)
         self.settings.pause_available_at = available.isoformat(timespec="seconds")
         self._save()
-        self._event("warning", "Pause requested", f"Cooldown ends at {available.strftime('%I:%M %p').lstrip('0')}.")
+        self._event(
+            "warning",
+            "Protected change requested",
+            f"{action_label} unlocks at {available.strftime('%I:%M %p').lstrip('0')}.",
+        )
         self._last_pause_phase = PausePhase.COUNTDOWN
         self.refresh_all()
         show_message(
             self,
             "Cooldown started",
-            f"Protection will remain active for {self._format_duration(minutes)}. "
+            f"{action_label} will remain locked for {self._format_duration(minutes)}. "
             + (
-                "The pause window will then stay open until you close the Website Blocker window."
+                "The change window will then stay open until you close the Website Blocker window."
                 if self.settings.pause_window_minutes == 0
-                else f"You will then have {self._format_duration(self.settings.pause_window_minutes)} to confirm the pause before it relocks."
+                else f"You will then have {self._format_duration(self.settings.pause_window_minutes)} to make the change before it relocks."
             ),
         )
         return False
 
+    def _authorize_time_limit_change(self, action_label: str) -> bool:
+        if not self.settings.lock_enabled:
+            return True
+        if not self._cooldown_allows_pause(action_label):
+            return False
+        return self._verify_pin_for_change(
+            "Unlock time limits",
+            f"Enter your Website Blocker PIN to {action_label.lower()}.",
+            "The time limit was not changed.",
+        )
+
+    def _consume_change_window(self) -> None:
+        if not self.settings.pause_available_at:
+            return
+        self.settings.pause_available_at = ""
+        self._last_pause_phase = PausePhase.INACTIVE
+
     def _tick_pause_status(self) -> None:
         state = pause_timer_state(self.settings.pause_available_at, self.settings.pause_window_minutes)
-        if not self.settings.protection_enabled:
-            if self.settings.pause_available_at:
-                self.settings.pause_available_at = ""
-                self._save()
-            self._last_pause_phase = PausePhase.INACTIVE
-            if self._window_is_open():
-                self.dashboard_page.update_pause_timer(self.settings)
-            return
         if state.phase == PausePhase.EXPIRED:
             self.settings.pause_available_at = ""
             self._save()
-            self._event("warning", "Pause window expired", "Protection relocked and a new delay will be required.")
+            self._event("warning", "Change window expired", "Protected changes relocked and a new delay will be required.")
             self._last_pause_phase = PausePhase.INACTIVE
             if self._window_is_open():
                 self.refresh_all()
             if self.settings.notifications and self.tray.isVisible():
                 self.tray.showMessage(
                     APP_NAME,
-                    "Pause window closed. Protection is locked again.",
+                    "Change window closed. Protected controls are locked again.",
                     shield_icon(32, ACCENTS[self.settings.accent], True),
                     3000,
                 )
@@ -380,19 +409,19 @@ class MainWindow(QMainWindow):
             close_bound = self.settings.pause_window_minutes == 0
             self._event(
                 "success",
-                "Pause window opened",
+                "Change window opened",
                 "It will reset when the Website Blocker window closes."
                 if close_bound
-                else f"You have {self._format_duration(self.settings.pause_window_minutes)} to pause protection.",
+                else f"You have {self._format_duration(self.settings.pause_window_minutes)} to make a protected change.",
             )
             if self._window_is_open():
                 self.refresh_all()
             if self.settings.notifications and self.tray.isVisible():
                 self.tray.showMessage(
                     APP_NAME,
-                    "Pause window open until the app window closes."
+                    "Change window open until the app window closes."
                     if close_bound
-                    else f"Pause window open for {self._format_duration(self.settings.pause_window_minutes)}.",
+                    else f"Change window open for {self._format_duration(self.settings.pause_window_minutes)}.",
                     shield_icon(32, ACCENTS[self.settings.accent], True),
                     3500,
                 )
@@ -453,6 +482,13 @@ class MainWindow(QMainWindow):
             except ValueError:
                 show_message(self, "Custom DNS needs two addresses", "Save valid primary and secondary DNS addresses first.", warning=True)
                 return
+        if not self._verify_pin_for_change(
+            "Unlock profiles",
+            f"Enter your Website Blocker PIN to switch to the {DNS_PRESETS[profile_id]['name']} profile.",
+            "The protection profile was not changed.",
+        ):
+            self.refresh_all()
+            return
         old = self.settings.active_profile
         self.settings.active_profile = profile_id
         if self.settings.protection_enabled:
@@ -476,6 +512,19 @@ class MainWindow(QMainWindow):
             secondary = str(secondary_address)
         except ValueError:
             show_message(self, "Invalid DNS address", "Enter two valid IPv4 addresses.", warning=True)
+            return
+        if (
+            primary == self.settings.custom_dns_primary
+            and secondary == self.settings.custom_dns_secondary
+            and (not activate or self.settings.active_profile == "custom")
+        ):
+            return
+        if not self._verify_pin_for_change(
+            "Unlock custom DNS",
+            "Enter your Website Blocker PIN before saving or activating custom DNS servers.",
+            "The custom DNS profile was not changed.",
+        ):
+            self.refresh_all()
             return
         old_primary = self.settings.custom_dns_primary
         old_secondary = self.settings.custom_dns_secondary
@@ -504,6 +553,8 @@ class MainWindow(QMainWindow):
         except ValueError as exc:
             show_message(self, "That domain does not look right", str(exc), warning=True)
             return
+        old_blocked = list(self.settings.blocked_domains)
+        old_allowed = list(self.settings.allowed_domains)
         target = self.settings.blocked_domains if kind == "blocked" else self.settings.allowed_domains
         opposite = self.settings.allowed_domains if kind == "blocked" else self.settings.blocked_domains
         if domain not in target:
@@ -514,7 +565,10 @@ class MainWindow(QMainWindow):
         if self.settings.protection_enabled:
             result = self.system_filter.enable(self.settings)
             if not result.success:
+                self.settings.blocked_domains = old_blocked
+                self.settings.allowed_domains = old_allowed
                 show_message(self, result.message, result.detail, warning=True)
+                self.refresh_all()
                 return
         self._save()
         self._event("success", "Site rule updated", f"{domain} was {kind}.")
@@ -522,12 +576,25 @@ class MainWindow(QMainWindow):
 
     def remove_domain(self, kind: str, domain: str) -> None:
         target = self.settings.blocked_domains if kind == "blocked" else self.settings.allowed_domains
-        if domain in target:
-            target.remove(domain)
+        if domain not in target:
+            return
+        if not self._verify_pin_for_change(
+            "Unlock site rules",
+            f"Enter your Website Blocker PIN to remove {domain} from {kind} sites.",
+            "The site rule was not removed.",
+        ):
+            self.refresh_all()
+            return
+        old_blocked = list(self.settings.blocked_domains)
+        old_allowed = list(self.settings.allowed_domains)
+        target.remove(domain)
         if self.settings.protection_enabled:
             result = self.system_filter.enable(self.settings)
             if not result.success:
+                self.settings.blocked_domains = old_blocked
+                self.settings.allowed_domains = old_allowed
                 show_message(self, result.message, result.detail, warning=True)
+                self.refresh_all()
                 return
         self._save()
         self._event("warning", "Site rule removed", domain)
@@ -581,7 +648,11 @@ class MainWindow(QMainWindow):
 
     def _refresh_screen_usage_page(self) -> None:
         first_day, _last_day = self.time_engine.screen_usage_bounds()
-        period = usage_period(self.usage_page.range_key, first_day)
+        period = usage_period(
+            self.usage_page.range_key,
+            first_day,
+            offset=self.usage_page.period_offset,
+        )
         target_filter = self.usage_page.type_filter if self.usage_page.type_filter in ("app", "website") else None
         rows = self.time_engine.screen_usage_summary(
             period.start.isoformat(),
@@ -613,6 +684,12 @@ class MainWindow(QMainWindow):
             hide_browser_apps and selected is None,
         )
         series = [(label, series_values.get(key, 0)) for key, label in zip(period.keys, period.labels)]
+        can_previous = False
+        if self.usage_page.range_key != "all":
+            try:
+                can_previous = not first_day or period.start > date.fromisoformat(first_day)
+            except ValueError:
+                can_previous = True
         self.usage_page.refresh(
             self.settings,
             rows,
@@ -620,6 +697,7 @@ class MainWindow(QMainWindow):
             period.title,
             period.days,
             self.time_engine.connected_companions(),
+            can_previous,
         )
 
     def set_screen_usage_master(self, enabled: bool) -> None:
@@ -644,7 +722,15 @@ class MainWindow(QMainWindow):
         )
 
     def set_limits_master(self, enabled: bool) -> None:
-        self.settings.limits_enabled = bool(enabled)
+        enabled = bool(enabled)
+        if enabled == self.settings.limits_enabled:
+            return
+        if not enabled and not self._authorize_time_limit_change("Turn off all time limits"):
+            self.refresh_all()
+            return
+        self.settings.limits_enabled = enabled
+        if not enabled:
+            self._consume_change_window()
         self._save()
         self._event(
             "success" if enabled else "warning",
@@ -681,16 +767,24 @@ class MainWindow(QMainWindow):
         self.refresh_all()
 
     def toggle_time_limit(self, rule_id: str, enabled: bool) -> None:
-        for rule in self.settings.time_limits:
-            if rule.id == rule_id:
-                rule.enabled = bool(enabled)
-                break
+        current = next((rule for rule in self.settings.time_limits if rule.id == rule_id), None)
+        if not current or current.enabled == bool(enabled):
+            return
+        if not enabled and not self._authorize_time_limit_change("Turn off this time limit"):
+            self.refresh_all()
+            return
+        current.enabled = bool(enabled)
+        if not enabled:
+            self._consume_change_window()
         self._save()
         self._refresh_limits_page()
 
     def edit_time_limit(self, rule_id: str) -> None:
         current = next((rule for rule in self.settings.time_limits if rule.id == rule_id), None)
         if not current:
+            return
+        if not self._authorize_time_limit_change("Edit this time limit"):
+            self.refresh_all()
             return
         apps = [app for app in list_open_apps() if app.executable_name != "website blocker.exe"]
         dialog = TimeLimitDialog(apps, self.time_engine.recent_sites(), current, self)
@@ -707,6 +801,7 @@ class MainWindow(QMainWindow):
             show_message(self, "That target already has a limit", "Choose a different app or website.", warning=True)
             return
         self.settings.time_limits = [updated if rule.id == rule_id else rule for rule in self.settings.time_limits]
+        self._consume_change_window()
         self._save()
         self._event("success", "Time limit updated", updated.display_name or updated.name)
         self.refresh_all()
@@ -722,7 +817,11 @@ class MainWindow(QMainWindow):
             "Remove",
         ):
             return
+        if not self._authorize_time_limit_change("Remove this time limit"):
+            self.refresh_all()
+            return
         self.settings.time_limits = [rule for rule in self.settings.time_limits if rule.id != rule_id]
+        self._consume_change_window()
         self._save()
         self._event("warning", "Time limit removed", removed.display_name or removed.name)
         self.refresh_all()
@@ -733,15 +832,8 @@ class MainWindow(QMainWindow):
             return
         label = rule.display_name or rule.name
         if self.settings.lock_enabled:
-            dialog = PinDialog(
-                "Reset today's usage",
-                f"Enter your Website Blocker PIN to clear today's counter for {label}.",
-                parent=self,
-            )
-            if dialog.exec() != PinDialog.DialogCode.Accepted:
-                return
-            if not verify_pin(dialog.value, self.settings.pin_salt, self.settings.pin_hash):
-                show_message(self, "Incorrect PIN", "Usage was not reset.", warning=True)
+            if not self._authorize_time_limit_change(f"Reset today's usage for {label}"):
+                self.refresh_all()
                 return
         elif not ask_confirmation(
             self,
@@ -751,6 +843,8 @@ class MainWindow(QMainWindow):
         ):
             return
         self.time_engine.reset_usage(rule_id)
+        self._consume_change_window()
+        self._save()
         self._event("warning", "Time-limit usage reset", f"Today's counter for {label} was cleared.")
         self._refresh_limits_page()
         show_message(self, "Usage reset", f"Today's counter for {label} is back to zero.")
@@ -823,19 +917,18 @@ class MainWindow(QMainWindow):
             return
         if name in ("cooldown_minutes", "pause_window_minutes") and self.settings.lock_enabled:
             state = pause_timer_state(self.settings.pause_available_at, self.settings.pause_window_minutes)
-            if state.phase in (PausePhase.COUNTDOWN, PausePhase.WINDOW):
-                dialog = PinDialog(
-                    "Unlock pause timing",
-                    "Enter the current PIN before changing timing during an active cooldown.",
-                    parent=self,
-                )
-                if dialog.exec() != PinDialog.DialogCode.Accepted:
-                    self.settings_page.refresh(self.settings)
-                    return
-                if not verify_pin(dialog.value, self.settings.pin_salt, self.settings.pin_hash):
-                    self.settings_page.refresh(self.settings)
-                    show_message(self, "Incorrect PIN", "The active pause timing was not changed.", warning=True)
-                    return
+            prompt = (
+                "Enter the current PIN before changing timing during an active cooldown."
+                if state.phase in (PausePhase.COUNTDOWN, PausePhase.WINDOW)
+                else "Enter the current PIN before changing the protected-change cooldown."
+            )
+            if not self._verify_pin_for_change(
+                "Unlock pause timing",
+                prompt,
+                "The protected-change timing was not changed.",
+            ):
+                self.settings_page.refresh(self.settings)
+                return
         if name in ("cooldown_minutes", "pause_window_minutes"):
             self.settings.pause_available_at = ""
             self._last_pause_phase = PausePhase.INACTIVE
@@ -872,7 +965,7 @@ class MainWindow(QMainWindow):
         self.settings.pin_hash = digest
         self.settings.lock_enabled = True
         self._save()
-        self._event("success", "Protection PIN enabled", "A PIN is now required before protection can be paused.")
+        self._event("success", "Protection PIN enabled", "Profiles, site removals, pause controls, and time limits are now protected.")
         self.refresh_all()
 
     def remove_pin(self) -> None:
@@ -891,7 +984,7 @@ class MainWindow(QMainWindow):
         if not ask_confirmation(
             self,
             "Remove the settings PIN?",
-            "Protection can then be paused and time-limit usage reset without a PIN.",
+            "Profiles, site rules, protection, and time limits can then be weakened without a PIN.",
             "Remove PIN",
         ):
             return
@@ -956,7 +1049,7 @@ class MainWindow(QMainWindow):
         self.settings.pause_available_at = ""
         self._last_pause_phase = PausePhase.INACTIVE
         self._save()
-        self._event("warning", "Pause window reset", "The Website Blocker window was closed.")
+        self._event("warning", "Change window reset", "The Website Blocker window was closed.")
 
     def apply_windows_frame(self) -> None:
         if os.name != "nt" or not self.windowHandle():

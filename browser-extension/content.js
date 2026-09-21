@@ -20,16 +20,18 @@ function checkLimit() {
   sendHeartbeat({type: "website-blocker-heartbeat", domain, active: true}, (result) => {
     if (!result) return;
     if (result.blocked) {
-      redirectToBlockPage(domain);
+      redirectToBlockPage(domain, result.block_reason);
       return;
     }
     if (result.notice) showWarning(result.notice, domain, result.accent_color);
   });
 }
 
-function redirectToBlockPage(domain) {
+function redirectToBlockPage(domain, reason = "") {
   redirecting = true;
-  const destination = extensionApi.runtime.getURL(`blocked.html?domain=${encodeURIComponent(domain)}`);
+  const destination = extensionApi.runtime.getURL(
+    `blocked.html?domain=${encodeURIComponent(domain)}&reason=${encodeURIComponent(reason || "time_limit")}`
+  );
   location.replace(destination);
 }
 
@@ -145,7 +147,7 @@ function showWarning(notice, domain, accentValue) {
     block.textContent = "Blocking...";
     sendHeartbeat({type: "website-blocker-decision", action: "block_today", domain}, (result) => {
       if (result && result.blocked) {
-        redirectToBlockPage(domain);
+        redirectToBlockPage(domain, result.block_reason);
         return;
       }
       status.textContent = "Website Blocker could not apply the block. Make sure the desktop app is running.";

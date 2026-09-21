@@ -37,6 +37,15 @@ def test_event_store_keeps_newest_first_and_honors_limit(tmp_path):
     assert [event.title for event in store.load()] == ["Third", "Second"]
 
 
+def test_event_store_clear_removes_recent_activity(tmp_path):
+    store = EventStore(tmp_path / "events.json")
+    store.add(EventRecord("success", "Saved", "Detail"))
+
+    store.clear()
+
+    assert store.load() == []
+
+
 def test_usage_store_accumulates_by_rule_and_day(tmp_path):
     store = UsageStore(tmp_path / "usage.db")
     store.add_seconds("one", 12, "2026-08-09")

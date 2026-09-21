@@ -1,6 +1,6 @@
 # Website Blocker Browser Companion
 
-This extension counts only the focused, visible website domain. It never sends full URLs, searches, page titles, or page content. All communication stays on `127.0.0.1` and fails open if the Website Blocker desktop app is not running.
+This extension syncs personal blocked-site rules and counts only the focused, visible website domain. It never sends full URLs, searches, page titles, or page content. All communication stays on `127.0.0.1` and fails open if the Website Blocker desktop app is not running.
 
 ## Vivaldi, Chrome, Edge, Brave, or Opera
 
